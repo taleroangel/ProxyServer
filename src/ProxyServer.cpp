@@ -23,10 +23,16 @@
 #include "Exception.hpp"
 #include "Server.hpp"
 #include "Client.hpp"
+#include "signal.h"
 
 /* -------------------------- Function prototypes -------------------------- */
 void mostrarUso();
 bool manejarArgumentos(int argc, char const *argv[], Connection::Port &port);
+void interruptHandler(int opt);
+
+/* --------------------------- Global variables --------------------------- */
+volatile bool *_main_http_handler;
+volatile bool _main_detach = false;
 
 /* --------------------------------- Main --------------------------------- */
 
@@ -37,7 +43,10 @@ int main(int argc, char const *argv[])
         puerto = DEFAULT_PORT;
 
     std::cout
-        << "Se abrirá una conexión por el puerto: " << puerto << std::endl;
+        << "Bienvenido al ServidorProxy" << std::endl;
+    std::cout
+        << "Se abrirá una conexión por el puerto: " << puerto << std::endl
+        << std::endl;
 
     // Crear la lista de peticiones HTTP
     HTTP *http_class = new HTTP();
@@ -68,9 +77,19 @@ int main(int argc, char const *argv[])
         << "El servidor está listo para enviar peticiones..." << std::endl;
     std::thread client_call(&Client::listener, cliente, http_class);
 
-    // Esperar al hilo
-    server_call.join();
-    client_call.join();
+    // Activar Interrupciones
+    _main_http_handler = (volatile bool *)&http_class->activeListen;
+    signal(SIGINT, interruptHandler);
+
+    server_call.detach();
+    client_call.detach();
+
+    while (!_main_detach)
+    {
+        // No hacer nada mientras estén los hilos
+    }
+
+    std::cout << "\nCerrando el Servidor Proxy..." << std::endl;
 
     // Eliminar el servidor
     delete http_class;
@@ -109,4 +128,10 @@ bool manejarArgumentos(
     }
 
     return false;
+}
+
+void interruptHandler(int opt)
+{
+    *_main_http_handler = false;
+    _main_detach = true;
 }

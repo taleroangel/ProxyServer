@@ -29,6 +29,11 @@
 
 #define IP_MAX_SIZE 20
 
+#define _HTTP_GET "GET"
+#define _HTTP_HEAD "HEAD"
+#define _HTTP_POST "POST"
+#define _HTTP_PUT "PUT"
+
 /**
  * @class HTTP
  * @brief Clase compartida entre hilos Servidor y Cliente
@@ -36,65 +41,60 @@
  */
 class HTTP
 {
+    /* ---- Public variables ---- */
+public:
+    volatile bool activeListen = true;
+
     /* ---- Public constants ---- */
 public:
-    static constexpr uint16_t
-        RequestSize = 512U; /*< Tamaño en bytes máximo de una petición HTTP*/
+    static constexpr uint32_t
+        RequestSize = 4096U; /*< Tamaño en bytes máximo de una petición HTTP*/
 
-    static constexpr uint16_t
-        ResponseSize = 1024U; /*< Tamaño en bytes máximo de una respuesta HTTP*/
+    static constexpr uint32_t
+        ResponseSize = 4096U; /*< Tamaño en bytes máximo de una respuesta HTTP*/
 
     static constexpr uint16_t
         TCPport = 80U; /*< Puerto TCP por defecto para HTTP*/
 
     /* ---- Public typedefs ---- */
 public:
-    using ResponseData = uint32_t; /*< Tipo de dato que almacena el tamaño de una respuesta de forma dinámica*/
+    using DataSize = uint32_t; /*< Tipo de dato que almacena el tamaño de
+    una respuesta de forma dinámica*/
 
     /**
-     * @struct Request
-     * @brief Petición de Cliente -> Servidor
-     * Ya debe venir tokenizada
+     * @enum RequestType
+     * @brief Obtener el tipo de petición HTTP
      */
-    struct Request
+    enum RequestType
     {
-        char request[RequestSize]; /*< RAW data, petición HTTP sin modificar*/
-        std::string IPv4_Dest;     /*< Dirección IPv4 de destino*/
-        std::string URLname;       /*< URL para el DNS*/
-
-        /**
-         * @brief Construir una petición HTML
-         * 
-         * @param HTMLresquest RAW Html request
-         * @param IPv4_destination IPV4 de destino
-         * @param url_name URL para el DNS
-         */
-        explicit Request(
-            const char HTMLresquest[RequestSize],
-            std::string IPv4_destination,
-            std::string url_name)
-            : IPv4_Dest(IPv4_destination), URLname(url_name)
-        {
-            strcpy(request, HTMLresquest);
-        }
+        GET,
+        HEAD,
+        POST,
+        PUT,
+        OTHER
     };
 
     /**
-     * @struct Response
-     * @brief Estructura de respuesta
+     * @struct Data
+     * @brief Estructura de pe
      */
-    struct Response
+    struct Data
     {
-        std::string response; /*< Buffer de respuesta GET*/
-        uint32_t response_size;   /*< Tamaño del buffer GET*/
+        std::string buffer;   /*< Buffer de datos*/
+        DataSize buffer_size; /*< Tamaño del buffer*/
+
+        // Peticiones
+        RequestType type;        /*< Tipo de petición*/
+        std::string destination; /*< Dirección IP de destino para peticiones*/
+        bool ignore;
     };
 
     /* ---- Private member variables ---- */
 private:
-    std::queue<Request> request_q;   /*< Cola con las peticiones*/
-    std::queue<Response> response_q; /*< Cola con las respuestas*/
-    sem_t request_n;                 /*< Semáforo con las peticiones disponibles*/
-    sem_t response_n;                /*< Semáforo con las respuestas disponibles*/
+    std::queue<Data> request_q;  /*< Cola con las peticiones*/
+    std::queue<Data> response_q; /*< Cola con las respuestas*/
+    sem_t request_n;             /*< Semáforo con las peticiones disponibles*/
+    sem_t response_n;            /*< Semáforo con las respuestas disponibles*/
 
     /* ---- Static methods ---- */
 public:
@@ -115,37 +115,43 @@ public:
     /**
      * @brief Crear un mensaje de tipo HEAD para conocer
      * el tamaño del buffer de una petición GET
-     * @param http_msg Mensaje GET original
-     * @param head_msg Referencia a string de destino
+     * @param http Mensaje GET original
+     * @param head Referencia a string de destino
      * @throw AddressException No es una petición GET
      */
-    static void create_head_message(
-        const char *http_msg,
-        char *head_msg) noexcept(false);
+    static void createHeadFromGet(
+        std::string http,
+        char *head) noexcept(false);
 
     /**
-     * @brief Obtener el parámetro 'Content-Length' antes de realizar una
-     * petición GET
+     * @brief Obtener el parámetro 'Content-Length'
+     * @param message Mensaje recibido
      * 
-     * @param head_msg Mensaje HEAD recibido
+     * @throw AddressException No existe parámetro 'Content-Length'
      * 
-     * @throw AddressException No existe parámetro de largo de contenido
-     * 
-     * @return ResponseData Tamaño de los datos de 'Content-Length' + el tamaño
-     * de el mensaje de HEAD
+     * @return DataSize Tamaño de los datos de 'Content-Length' + el tamaño
+     * de el mensaje
      */
-    static ResponseData get_head_size(
-        const char head_msg[ResponseSize]) noexcept(false);
+    static DataSize getContentLength(
+        const char *message) noexcept(false);
 
     /**
-     * @brief Obtener el hostname de un paquete HTTP
+     * @brief Obtener el Hostname de destino de un paquete GET
      * 
-     * @param http_data string tipo C con el request HTTP RAW
+     * @param http_data String con el Request tipo GET
      * @param hostname Apuntador a un string donde guardar el hostname
      */
     static void get_hostname(
         const char http_data[HTTP::RequestSize],
-        char *hostname);
+        char *hostname) noexcept(false);
+
+    /**
+     * @brief Obtener el tipo de petición HTTP
+     * 
+     * @param http_data Datos HTTP
+     * @return RequestType Petición
+     */
+    static RequestType getType(std::string http_data);
 
     /* ---- Constructor ---- */
 public:
@@ -167,7 +173,7 @@ public:
      * @brief Empujar una petición a la cola
      * Función multihilos, incrementa la cantidad de recursos disponibles
      */
-    void pushRequest(Request);
+    void pushRequest(Data);
 
     /**
      * @brief Eliminar una petición de la lista
@@ -178,15 +184,16 @@ public:
      * @brief Sacar una petición de la lista para que el cliente pueda leerla
      * Función multihilos, si no hay recursos disponibles el hilo se bloquea
      * 
-     * @return Request Petición a sacar de la cola
+     * @return Data Petición a sacar de la cola
      */
-    Request getRequest();
+    Data getRequest();
 
     /**
      * @brief Empujar una respuesta a la cola
      * Función multihilos, incrementa la cantidad de recursos disponibles
+     * @param Data Respuesta a empujar
      */
-    void pushResponse(Response);
+    void pushResponse(Data);
 
     /**
      * @brief Eliminar una petición de la lista
@@ -197,9 +204,9 @@ public:
      * @brief Sacar una respuesta de la lista para que el servidor pueda leerla
      * Función multihilos, si no hay recursos disponibles el hilo se bloquea
      * 
-     * @return Response Respuesta a sacar de la cola
+     * @return Data Respuesta a sacar de la cola
      */
-    Response getResponse();
+    Data getResponse();
 };
 
 #endif //_HTTP_HPP_

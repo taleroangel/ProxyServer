@@ -35,7 +35,7 @@ void Server::createSocket(
 {
     // Create a new socket
     this->network_socket =
-        socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        socket(AF_INET, SOCK_STREAM, 0);
     /* IPv4 data en Stream a través de TCP */
 
     // Verificar correcta inicialización
@@ -89,14 +89,15 @@ void Server::listener(HTTP *http_class)
     }
 
     //* Ahora el Server puede recibir conexiones
-    while (true)
+    while (http_class->activeListen)
     {
         FileDescriptor client_socket; // Socket del cliente
+
         try
         {
-            //TODO: Obtener la información del IP cliente
-            // NULL, NULL indica que no necesito la IP del cliente
+            // Aceptar al cliente que se quiere conectar
             client_socket = accept(this->network_socket, NULL, NULL);
+
             if (client_socket < 0)
                 throw SocketException("Socket accept");
         }
@@ -109,18 +110,31 @@ void Server::listener(HTTP *http_class)
 
         //* 1. Recibir su request HTML
         char request_http[HTTP::RequestSize];
-        recv(client_socket, &request_http, sizeof(request_http), 0);
+        memset(request_http, 0, sizeof(request_http));
+
+        ssize_t bytes_read =
+            recv(client_socket, &request_http, HTTP::RequestSize, 0);
+
+        // Colocar bit de finalización
+        request_http[bytes_read] = '\0';
 
         //1.1 Mostrar el request por pantalla
-        std::cout << std::endl
-                  << "Ha llegado una petición" << std::endl
-                  << request_http << std::endl;
+        std::cout << "Servidor: Recibiendo una petición del buscador" << std::endl;
 
         //* 2. Reenviar request HTML al hilo Cliente
 
         // 2.1 Tokenizar la URL destino
         char url_host[IP_MAX_SIZE];
-        HTTP::get_hostname(request_http, url_host);
+
+        try
+        {
+            HTTP::get_hostname(request_http, url_host);
+        }
+        catch (std::out_of_range &e)
+        {
+            std::cerr << e.what() << std::endl;
+            continue;
+        }
 
         // 2.2 Obtener la IP mediante DNS
         std::string dir_host;
@@ -131,16 +145,32 @@ void Server::listener(HTTP *http_class)
         catch (AddressException &e)
         {
             std::cerr << "Dirección no encontrada" << std::endl;
+            continue;
         }
 
         // 2.3 Enviarsela al Cliente
-        http_class->pushRequest(HTTP::Request(request_http, dir_host, url_host));
+        HTTP::Data data;
+        data.buffer_size = bytes_read;
+        data.buffer = request_http;
+        data.type = HTTP::getType(data.buffer);
+        data.destination = dir_host;
+        data.ignore = false;
+
+        http_class->pushRequest(data);
 
         //* 3. Recibir respuesta del hilo Cliente
-        HTTP::Response response = http_class->getResponse();
+        HTTP::Data response = http_class->getResponse();
 
-        //* 4. Reenviar respuesta HTML al origen
-        std::cout << "Reenviando respuesta al navegador" << std::endl;
+        if (response.ignore != true)
+        {
+            //* 4. Reenviar respuesta al origen (Buscador)
+            std::cout << "Servidor: Reenviando respuesta al navegador" << std::endl;
+            send(client_socket, response.buffer.c_str(), response.buffer_size, 0);
+
+            std::cout << std::endl
+                      << "Respuesta enviada al navegador:\n"
+                      << response.buffer.c_str() << std::endl;
+        }
 
         http_class->popResponse();
 
