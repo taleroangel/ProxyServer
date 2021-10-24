@@ -32,6 +32,8 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 
+#include "HTTP.hpp"
+
 #define DEFAULT_PORT 8024U      /*< Default connection port*/
 #define LISTEN_ANY_IP "0.0.0.0" /*< Listen to every port IP address*/
 
@@ -47,6 +49,11 @@ public:
     using FileDescriptor = int16_t; /*< Tipo de dato para FileDescriptors de POSIX */
     using Port = uint16_t;          /*< Tipo de datos para puertos*/
     using IPaddress = std::string;  /*< Tipo de datos para direcciónes IP*/
+
+    /* ---- Destructor ---- */
+public:
+    // Las interfaces en C++ DEBEN tener un contructor virtual definido
+    virtual ~Connection(){};
 
     /* ---- Public Methods ---- */
 public:
@@ -64,13 +71,11 @@ public:
      * @throw SocketException Puede retornar una excepción de este tipo
      * indicando que falló la creación del Socket, (véase @link SocketException )
      * 
-     * @throw ConnectionException Puede retornar una excepción de este tipo
+     * @throw AddressException Puede retornar una excepción de este tipo
      * indicando que no se pudo conectar a determinada IP o puerto, (véase 
-     * @link ConnectionException )
-     * 
-     * @return FileDescriptor File Descriptor del Socket
+     * @link AddressException )
      */
-    virtual FileDescriptor createSocket(
+    virtual void createSocket(
         IPaddress ipv4 = LISTEN_ANY_IP,
         Port port = DEFAULT_PORT) noexcept(false) = 0;
 
@@ -78,18 +83,16 @@ public:
      * @brief Cerrar el Socket
      * 
      */
-    virtual void closeSocket() = 0;
+    virtual void closeSocket() noexcept(false) = 0;
 
-    /* ---- Operator Overloading ---- */
-public:
     /**
-     * @brief Sobrecarga del operador ()(int) para llamar a la clase
-     * como una función desde un hilo </br>
-     * Esta función será la encargada de manipular las conexiones desde un hilo
-     * por lo que las operaciones Connect/Accept se dan aquí
-     * @param mode Parámetro reservado
+     * @brief Escuchar a posibles conexiones
+     * Call from a thread
+     * 
+     * @param http_class Referencia a la clase HTTP común entre hilos
+     * Servidor y cliente
      */
-    virtual void operator()(int mode) = 0;
+    virtual void listener(HTTP * http_class) = 0;
 };
 
 #endif //_CONNECTION_HPP_

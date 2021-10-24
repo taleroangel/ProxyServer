@@ -23,6 +23,33 @@
 
 class Client : public Connection
 {
+
+    /* ---- Private member variable ---- */
+private:
+    FileDescriptor network_socket; /*< Socket*/
+    uint16_t port;
+
+    /* ---- Constructors ---- */
+public:
+    /**
+     * @brief Construir un Objecto Cliente
+     * @param port Puerto a usar, por defecto [HTTP::TCPport]
+     */
+    explicit Client(Port port = HTTP::TCPport) noexcept(false);
+
+    /**
+     * @brief Destruir el cliente
+     */
+    ~Client();
+
+    /* ---- Virtual function override ---- */
+public:
+    void createSocket(
+        IPaddress ipv4, Port port = HTTP::TCPport) noexcept(false) override;
+
+    void closeSocket() noexcept(false) override;
+
+    void listener(HTTP *http_class) override;
 };
 
 #endif //_CLIENT_HPP_

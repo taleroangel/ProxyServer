@@ -18,6 +18,7 @@
 #define _EXCEPTION_HPP_
 
 #include <exception>
+#include <stdexcept>
 #include <string>
 
 /**
@@ -52,11 +53,11 @@ public:
 };
 
 /**
- * @class ConnectionException
+ * @class AddressException
  * @brief Excepción al intentar Conectar el socket a determinada dirección
  * IP no existente o un Puerto ocupado
  */
-class ConnectionException : public std::exception
+class AddressException : public std::exception
 {
     std::string message; /*< Error message */
 
@@ -66,7 +67,7 @@ public:
      * 
      * @param error Mensaje de error (Opcional)
      */
-    explicit ConnectionException(
+    explicit AddressException(
         const std::string &error = "Error al conectar el socket")
         : message(error)
     {

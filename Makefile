@@ -4,7 +4,7 @@
 PROJECT = ProxyServer
 
 # Compiler and Language STD
-CXX	= @g++
+CXX	= g++
 STD	= -std=c++11
 
 # Source directories
@@ -24,13 +24,13 @@ INCLUDE := $(SRC_DIR)
 WARN := -Wall
 OPTI := -O0
 LINK :=
-OTHR := -pthread
+OTHR := -pthread -g
 
 # Join all flags
 CXXFLAGS := $(STD) $(WARN) $(OPTI) $(LINK) $(OTHR) -I$(INCLUDE) -L$(LIB_DIR) $(LIBS)
 
 # Objects
-OBJS = $(BLD_DIR)/Server.o $(BLD_DIR)/Client.o
+OBJS = $(BLD_DIR)/Server.o $(BLD_DIR)/Client.o $(BLD_DIR)/HTTP.o
 DEPS = $(SRC_DIR)/Connection.hpp $(SRC_DIR)/Exception.hpp
 
 main: pre $(BIN_DIR)/$(PROJECT)
@@ -46,6 +46,9 @@ $(BLD_DIR)/Server.o: $(SRC_DIR)/Server.cpp $(SRC_DIR)/Server.hpp $(DEPS)
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
 $(BLD_DIR)/Client.o: $(SRC_DIR)/Client.cpp $(SRC_DIR)/Client.hpp $(DEPS)
+	$(CXX) -c $(CXXFLAGS) -o $@ $<
+
+$(BLD_DIR)/HTTP.o: $(SRC_DIR)/HTTP.cpp $(SRC_DIR)/HTTP.hpp $(DEPS)
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
 # Phony's and Commands
