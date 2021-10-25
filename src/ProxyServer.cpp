@@ -19,6 +19,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <thread>
+#include <cstring>
+#include <string>
 
 #include "Exception.hpp"
 #include "Server.hpp"
@@ -141,13 +143,13 @@ std::string manejarArgumentos(
     Connection::Port &port, bool &archivo)
 {
     archivo = false;
-    std::string nombre_archivo;
+    char buffer[16] = "null";
 
     switch (argc)
     {
     // Archivo
     case 3:
-        nombre_archivo = argv[3];
+        strcpy(buffer, argv[2]);
         archivo = true;
 
     // Sólo PUERTO
@@ -178,6 +180,7 @@ std::string manejarArgumentos(
         break;
     }
 
+    std::string nombre_archivo(buffer);
     return nombre_archivo;
 }
 

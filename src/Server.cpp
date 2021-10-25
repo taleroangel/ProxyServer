@@ -126,22 +126,6 @@ void Server::listener(HTTP *http_class)
         char url_host[IP_MAX_SIZE];
         std::string pagina;
 
-        // Páginas web virtuales
-        if (http_class->isVirtPage())
-        {
-            try
-            {
-                pagina = http_class->getVirtWebPage()->getVirtualPage(url_host);
-
-                // Copiar los contenidos de la página en la string de URL
-                strcpy(url_host, pagina.c_str());
-            }
-            catch (AddressException &e)
-            {
-                std::cerr << e.what() << std::endl;
-            }
-        }
-
         try
         {
             HTTP::get_hostname(request_http, url_host);
@@ -150,6 +134,24 @@ void Server::listener(HTTP *http_class)
         {
             std::cerr << e.what() << std::endl;
             continue;
+        }
+
+        // Páginas web virtuales
+        if (http_class->isVirtPage())
+        {
+            try
+            {
+                pagina = http_class->getVirtWebPage()->getVirtualPage(url_host);
+
+                // Copiar los contenidos de la página en la string de URL
+                std::cout << "\nPáginas web virtuales: "
+                          << url_host << " -> " << pagina;
+                strcpy(url_host, pagina.c_str());
+            }
+            catch (AddressException &e)
+            {
+                std::cerr << e.what() << std::endl;
+            }
         }
 
         // 2.2 Obtener la IP mediante DNS

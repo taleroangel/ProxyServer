@@ -69,7 +69,7 @@ void Client::listener(HTTP *http_class)
         // Datos a transferir
         HTTP::Data response;
 
-        std::cout << "Cliente: Enviando datos al server" << std::endl;
+        std::cout << "\nCliente: Enviando datos al server" << std::endl;
         write(this->network_socket,
               request.buffer.c_str(),
               request.buffer_size);
@@ -102,7 +102,7 @@ void Client::listener(HTTP *http_class)
                 http_buffer_response, sizeof(char) * current_memory);
         }
 
-        std::cout << "Cliente: Fin de la transacción" << std::endl;
+        std::cout << "Cliente: Fin de la transacción\n" << std::endl;
 
         // Enviar la respuesta al servidor
         response.buffer = http_buffer_response;
