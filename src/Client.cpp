@@ -77,32 +77,63 @@ void Client::listener(HTTP *http_class)
 
         //* Leer la respuesta (Redirigir el paquete)
 
-        uint32_t current_memory = 1;
+        uint32_t memory_per_read = HTTP::ResponseSize; // Memoria por lectura
+        uint32_t current_memory = memory_per_read;     // Memoria inicial
+
         char *http_buffer_response =
             (char *)calloc(current_memory, sizeof(char));
         // Pedir memoria para un array inicializado en 1
 
         std::cout << "Cliente: Recibiendo datos del server" << std::endl;
-        size_t bytes_read = 0;
-        while (true)
+        uint32_t bytes_read = 0;
+
+        uint32_t data_len = HTTP::MaxSIZE;
+        bool found_size = false;
+
+        do
         {
             // Leer 1 byte a la vez
             ssize_t bytes =
                 read(this->network_socket,
-                     http_buffer_response + bytes_read, 1);
+                     http_buffer_response + bytes_read, memory_per_read);
 
             if (bytes == 0)
                 break;
 
             bytes_read += bytes;
-            current_memory++;
+            current_memory += bytes;
+
+            // Revisar si ha llegado Content-Lenght
+            if (!found_size)
+            {
+                uint32_t expected =
+                    HTTP::get_content_lenght(http_buffer_response, current_memory);
+                if (expected != 0)
+                {
+                    std::cout << "Content-Lenght: " << expected << std::endl;
+                    data_len =
+                        expected +
+                        HTTP::get_header_size(http_buffer_response, current_memory);
+                    found_size = true;
+                }
+                else
+                {
+                    std::cout << "No se especificó 'Content-Lenght'" << std::endl;
+                    std::cout << "Se leerán máximo "
+                              << HTTP::ResponseSize << " Bytes"
+                              << std::endl;
+                    break;
+                }
+            }
 
             // Cada que pida un byte realojo la memoria con el nuevo tamaño
             http_buffer_response = (char *)realloc(
                 http_buffer_response, sizeof(char) * current_memory);
-        }
 
-        std::cout << "Cliente: Fin de la transacción\n" << std::endl;
+        } while (bytes_read < data_len);
+
+        std::cout << "Cliente: Fin de la transacción\n"
+                  << std::endl;
 
         // Enviar la respuesta al servidor
         response.buffer = http_buffer_response;

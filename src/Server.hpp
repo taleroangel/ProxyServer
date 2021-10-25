@@ -22,6 +22,7 @@
 
 #include "Connection.hpp"
 
+#define URL_MAX_SIZE 120
 class Server : public Connection
 {
     /* ---- Constants ---- */

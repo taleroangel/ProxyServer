@@ -58,6 +58,9 @@ public:
     static constexpr uint16_t
         TCPport = 80U; /*< Puerto TCP por defecto para HTTP*/
 
+    static constexpr uint32_t
+        MaxSIZE = 536900000U; /*< Tamaño máximo de HTML permitido (512MB)*/
+
     /* ---- Public typedefs ---- */
 public:
     using DataSize = uint32_t; /*< Tipo de dato que almacena el tamaño de
@@ -113,6 +116,26 @@ public:
     static void get_hostname(
         const char http_data[HTTP::RequestSize],
         char *hostname) noexcept(false);
+
+    /**
+     * @brief Obtener el parámetro Content-Length:
+     * 
+     * @param http_data Data recibida
+     * @param c_size Tamaño de la data
+     * @return uint32_t Tamaño esperado
+     */
+    static uint32_t get_content_lenght(
+        const char *http_data, uint32_t c_size);
+
+    /**
+     * @brief Obtener el tamaño del header
+     * 
+     * @param http_data Data recibida
+     * @param c_size  Tamaño de la data
+     * @return unsigned int tamaño del header
+     */
+    static unsigned int get_header_size(
+        const char *http_data, uint32_t c_size);
 
     /* ---- Constructor ---- */
 public:

@@ -123,7 +123,7 @@ void Server::listener(HTTP *http_class)
         //* 2. Reenviar request HTML al hilo Cliente
 
         // 2.1 Tokenizar la URL destino
-        char url_host[IP_MAX_SIZE];
+        char url_host[URL_MAX_SIZE];
         std::string pagina;
 
         try
@@ -166,7 +166,7 @@ void Server::listener(HTTP *http_class)
             }
             catch (AddressException &e)
             {
-                std::cerr << "Dirección no encontrada" << std::endl;
+                std::cerr << "Dirección no encontrada: " << url_host << std::endl;
                 continue;
             }
 
@@ -191,7 +191,7 @@ void Server::listener(HTTP *http_class)
         //* 3. Recibir respuesta del hilo Cliente
         HTTP::Data response = http_class->getResponse();
 
-        std::cout << "Servidor: Enviando datos al navegador" << std::endl;
+        std::cout << "\nServidor: Enviando datos al navegador" << std::endl;
         if (response.ignore != true)
         {
             //* 4. Reenviar respuesta al origen (Buscador)

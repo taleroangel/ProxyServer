@@ -136,3 +136,32 @@ void HTTP::attachVirtWebPage(VirtWebPage *virtual_manager)
 {
     this->virtual_pages = virtual_manager;
 }
+
+uint32_t HTTP::get_content_lenght(
+    const char *http_data, uint32_t c_size)
+{
+    std::string http(http_data, c_size);
+
+    unsigned int start = http.find("Content-Length:");
+    if (start == std::string::npos)
+        return 0;
+
+    http = http.substr(start, c_size - 1);
+
+    start = sizeof("Content-Length:");
+    unsigned int end = http.find("\r\n");
+
+    http = http.substr(start, end);
+    return std::atoi(http.c_str());
+}
+
+unsigned int HTTP::get_header_size(
+    const char *http_data, uint32_t c_size)
+{
+    std::string http(http_data, c_size);
+    unsigned int size = http.find("\r\n\r\n");
+    if (size == std::string::npos)
+        return 0;
+
+    return size + sizeof("\r\n\r\n") - 1;
+}
