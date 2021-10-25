@@ -91,6 +91,7 @@ void Server::listener(HTTP *http_class)
     //* Ahora el Server puede recibir conexiones
     while (http_class->activeListen)
     {
+        std::cout << "Servidor: en estado de escucha" << std::endl;
         FileDescriptor client_socket; // Socket del cliente
 
         try
@@ -166,7 +167,9 @@ void Server::listener(HTTP *http_class)
             }
             catch (AddressException &e)
             {
-                std::cerr << "Dirección no encontrada: " << url_host << std::endl;
+                std::cerr << "\nDirección no encontrada: " << url_host << std::endl;
+                std::cout << "Saltando petición" << std::endl;
+                close(client_socket);
                 continue;
             }
 
