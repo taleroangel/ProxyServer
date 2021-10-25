@@ -27,6 +27,8 @@
 #include <cstring>
 #include <memory>
 
+#include "VirtWebPage.hpp"
+
 #define IP_MAX_SIZE 20
 
 #define _HTTP_GET "GET"
@@ -62,44 +64,34 @@ public:
     una respuesta de forma dinámica*/
 
     /**
-     * @enum RequestType
-     * @brief Obtener el tipo de petición HTTP
-     */
-    enum RequestType
-    {
-        GET,
-        HEAD,
-        POST,
-        PUT,
-        OTHER
-    };
-
-    /**
      * @struct Data
-     * @brief Estructura de pe
+     * @brief Estructura de datos entre Cliente - Servidor
      */
     struct Data
     {
         std::string buffer;   /*< Buffer de datos*/
         DataSize buffer_size; /*< Tamaño del buffer*/
 
-        // Peticiones
-        RequestType type;        /*< Tipo de petición*/
         std::string destination; /*< Dirección IP de destino para peticiones*/
-        bool ignore;
+        bool ignore;             /*< Flag para ignorar el paquete*/
     };
 
     /* ---- Private member variables ---- */
 private:
-    std::queue<Data> request_q;  /*< Cola con las peticiones*/
+    std::queue<Data> request_q; /*< Cola con las peticiones*/
+    sem_t sempahore_request;    /*< Semáforo de peticiones*/
+
     std::queue<Data> response_q; /*< Cola con las respuestas*/
-    sem_t request_n;             /*< Semáforo con las peticiones disponibles*/
-    sem_t response_n;            /*< Semáforo con las respuestas disponibles*/
+    sem_t semaphore_response;    /*< Semáforo de respuesta*/
+
+    VirtWebPage *virtual_pages; /*< Soporte para Páginas Web virtuales*/
 
     /* ---- Static methods ---- */
 public:
     /**
-     * @brief Resolver el nombre de host DNS
+     * @brief Resolver el nombre de host DNS,
+     * Si las páginas web virtuales están disponibles primero verifica en las
+     * tables de 'Alias'
      * 
      * @param url Nombre de host DNS
      * @param attempt Cuando hay varias ip's disponibles se puede seleccionar
@@ -113,29 +105,6 @@ public:
         std::string url, uint8_t attempt = 0) noexcept(false);
 
     /**
-     * @brief Crear un mensaje de tipo HEAD para conocer
-     * el tamaño del buffer de una petición GET
-     * @param http Mensaje GET original
-     * @param head Referencia a string de destino
-     * @throw AddressException No es una petición GET
-     */
-    static void createHeadFromGet(
-        std::string http,
-        char *head) noexcept(false);
-
-    /**
-     * @brief Obtener el parámetro 'Content-Length'
-     * @param message Mensaje recibido
-     * 
-     * @throw AddressException No existe parámetro 'Content-Length'
-     * 
-     * @return DataSize Tamaño de los datos de 'Content-Length' + el tamaño
-     * de el mensaje
-     */
-    static DataSize getContentLength(
-        const char *message) noexcept(false);
-
-    /**
      * @brief Obtener el Hostname de destino de un paquete GET
      * 
      * @param http_data String con el Request tipo GET
@@ -144,14 +113,6 @@ public:
     static void get_hostname(
         const char http_data[HTTP::RequestSize],
         char *hostname) noexcept(false);
-
-    /**
-     * @brief Obtener el tipo de petición HTTP
-     * 
-     * @param http_data Datos HTTP
-     * @return RequestType Petición
-     */
-    static RequestType getType(std::string http_data);
 
     /* ---- Constructor ---- */
 public:
@@ -207,6 +168,28 @@ public:
      * @return Data Respuesta a sacar de la cola
      */
     Data getResponse();
+
+    /**
+     * @brief Obtener la clase que maneja los sitios web virtuales
+     * 
+     * @return VirtWebPage* Clase de sitios web virtuales
+     */
+    VirtWebPage *getVirtWebPage();
+
+    /**
+     * @brief Verificar si se están usando páginas web virtuales
+     * 
+     * @return true Se están usando Páginas Virtuales
+     * @return false No se están usando Páginas Virtuales
+     */
+    bool isVirtPage();
+
+    /**
+     * @brief Añadir un manejador de paginas virtuales
+     * 
+     * @param virtual_manager Manejador
+     */
+    void attachVirtWebPage(VirtWebPage *virtual_manager);
 };
 
 #endif //_HTTP_HPP_

@@ -68,7 +68,38 @@ public:
      * @param error Mensaje de error (Opcional)
      */
     explicit AddressException(
-        const std::string &error = "Error al conectar el socket")
+        const std::string &error = "Error de direcciones IPv4")
+        : message(error)
+    {
+    }
+
+    /**
+     * @brief Mostrar el mensaje de error
+     * 
+     * @return const char* Mensaje de error
+     */
+    virtual const char *what() const throw()
+    {
+        return message.c_str();
+    }
+};
+
+/**
+ * @class FileException
+ * @brief Excepción al intentar abrir un archivo no existente
+ */
+class FileException : public std::exception
+{
+    std::string message; /*< Error message */
+
+public:
+    /**
+     * @brief Constructor de la Excepción de Conexión
+     * 
+     * @param error Mensaje de error (Opcional)
+     */
+    explicit FileException(
+        const std::string &error = "Error de archivo")
         : message(error)
     {
     }

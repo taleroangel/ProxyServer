@@ -112,19 +112,35 @@ void Server::listener(HTTP *http_class)
         char request_http[HTTP::RequestSize];
         memset(request_http, 0, sizeof(request_http));
 
+        std::cout << "\nServidor: Recibiendo data del navegador" << std::endl;
         ssize_t bytes_read =
             recv(client_socket, &request_http, HTTP::RequestSize, 0);
+        std::cout << "Servidor: Fin de la transacción" << std::endl;
 
         // Colocar bit de finalización
         request_http[bytes_read] = '\0';
-
-        //1.1 Mostrar el request por pantalla
-        std::cout << "Servidor: Recibiendo una petición del buscador" << std::endl;
 
         //* 2. Reenviar request HTML al hilo Cliente
 
         // 2.1 Tokenizar la URL destino
         char url_host[IP_MAX_SIZE];
+        std::string pagina;
+
+        // Páginas web virtuales
+        if (http_class->isVirtPage())
+        {
+            try
+            {
+                pagina = http_class->getVirtWebPage()->getVirtualPage(url_host);
+
+                // Copiar los contenidos de la página en la string de URL
+                strcpy(url_host, pagina.c_str());
+            }
+            catch (AddressException &e)
+            {
+                std::cerr << e.what() << std::endl;
+            }
+        }
 
         try
         {
@@ -137,22 +153,34 @@ void Server::listener(HTTP *http_class)
         }
 
         // 2.2 Obtener la IP mediante DNS
-        std::string dir_host;
-        try
+        static std::string previous_url("");
+        static std::string dir_host("");
+
+        if (previous_url.compare(url_host) != 0)
         {
-            dir_host = HTTP::resolveDNS(url_host);
+            try
+            {
+                dir_host = HTTP::resolveDNS(url_host);
+            }
+            catch (AddressException &e)
+            {
+                std::cerr << "Dirección no encontrada" << std::endl;
+                continue;
+            }
+
+            previous_url = url_host;
         }
-        catch (AddressException &e)
+
+        else
         {
-            std::cerr << "Dirección no encontrada" << std::endl;
-            continue;
+            std::cout << "\nServicio DNS: usando dirección previa\n"
+                      << std::endl;
         }
 
         // 2.3 Enviarsela al Cliente
         HTTP::Data data;
         data.buffer_size = bytes_read;
         data.buffer = request_http;
-        data.type = HTTP::getType(data.buffer);
         data.destination = dir_host;
         data.ignore = false;
 
@@ -161,16 +189,14 @@ void Server::listener(HTTP *http_class)
         //* 3. Recibir respuesta del hilo Cliente
         HTTP::Data response = http_class->getResponse();
 
+        std::cout << "Servidor: Enviando datos al navegador" << std::endl;
         if (response.ignore != true)
         {
             //* 4. Reenviar respuesta al origen (Buscador)
-            std::cout << "Servidor: Reenviando respuesta al navegador" << std::endl;
             send(client_socket, response.buffer.c_str(), response.buffer_size, 0);
-
-            std::cout << std::endl
-                      << "Respuesta enviada al navegador:\n"
-                      << response.buffer.c_str() << std::endl;
         }
+        std::cout << "Servidor: Fin de la transacción\n"
+                  << std::endl;
 
         http_class->popResponse();
 

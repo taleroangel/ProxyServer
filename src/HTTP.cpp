@@ -13,18 +13,17 @@
 #define _HTTP_CONTENT_LENGTH "\r\nContent-Length:"
 
 HTTP::HTTP()
-    : activeListen(true)
+    : activeListen(true), virtual_pages(nullptr)
 {
-    // Inicializar recursos
-    sem_init(&this->request_n, 0, 0);
-    sem_init(&this->response_n, 0, 0);
+    sem_init(&this->sempahore_request, false, 0);
+    sem_init(&this->semaphore_response, false, 0);
 }
 
 HTTP::~HTTP()
 {
     this->activeListen = false;
-    sem_destroy(&this->request_n);
-    sem_destroy(&this->response_n);
+    sem_destroy(&this->sempahore_request);
+    sem_destroy(&this->semaphore_response);
 }
 
 std::string HTTP::resolveDNS(std::string url, uint8_t attempt)
@@ -57,40 +56,10 @@ std::string HTTP::resolveDNS(std::string url, uint8_t attempt)
 
     // Retornar direccion ipv4
     std::cout << std::endl
-              << "Servicio DNS: " << url << " -> " << ipv4 << std::endl;
+              << "Servicio DNS: " << url << " -> " << ipv4 << std::endl
+              << std::endl;
+
     return ipv4;
-}
-
-void HTTP::createHeadFromGet(std::string http, char *head)
-{
-    unsigned int start = http.find(_HTTP_GET);
-
-    if (start == std::string::npos)
-    {
-        throw AddressException("No content lenght");
-    }
-    unsigned int finish = start + sizeof(_HTTP_GET) - 1;
-    http.replace(start, finish, _HTTP_HEAD);
-    strcpy(head, http.c_str());
-}
-
-HTTP::DataSize HTTP::getContentLength(
-    const char head_msg[HTTP::ResponseSize])
-{
-    std::string data(head_msg);
-    unsigned int start = data.find(_HTTP_CONTENT_LENGTH) + sizeof(_HTTP_CONTENT_LENGTH);
-
-    if (start == std::string::npos)
-    {
-        throw AddressException("No content lenght");
-    }
-
-    data = data.substr(start, data.size());
-
-    unsigned int finish = data.find(_HTTP_LINE_FEED);
-    data = data.substr(0, finish);
-
-    return std::stoi(data);
 }
 
 void HTTP::get_hostname(
@@ -112,32 +81,11 @@ void HTTP::get_hostname(
     strcpy(hostname, data.c_str());
 }
 
-HTTP::RequestType HTTP::getType(std::string http_data)
-{
-    unsigned int lineFeed = http_data.find(_HTTP_LINE_FEED);
-    http_data = http_data.substr(0, lineFeed);
-
-    if (http_data.find(_HTTP_GET) != std::string::npos)
-        return GET;
-
-    else if (http_data.find(_HTTP_HEAD) != std::string::npos)
-        return HEAD;
-
-    else if (http_data.find(_HTTP_POST) != std::string::npos)
-        return POST;
-
-    else if (http_data.find(_HTTP_PUT) != std::string::npos)
-        return PUT;
-
-    else
-        return OTHER;
-}
-
 void HTTP::pushRequest(Data request)
 {
     std::cout << "Se ha empilado una petición (Desbloquea Cliente)" << std::endl;
     this->request_q.push(request);
-    sem_post(&this->request_n);
+    sem_post(&this->sempahore_request);
 }
 
 void HTTP::popRequest()
@@ -148,7 +96,7 @@ void HTTP::popRequest()
 HTTP::Data HTTP::getRequest()
 {
     std::cout << "Se ha desempilado una petición (Bloquea Cliente)" << std::endl;
-    sem_wait(&this->request_n);
+    sem_wait(&this->sempahore_request);
     return this->request_q.front();
 }
 
@@ -156,7 +104,7 @@ void HTTP::pushResponse(HTTP::Data response)
 {
     std::cout << "Se ha empilado una respuesta (Desbloquea Servidor)" << std::endl;
     this->response_q.push(response);
-    sem_post(&this->response_n);
+    sem_post(&this->semaphore_response);
 }
 
 void HTTP::popResponse()
@@ -167,6 +115,24 @@ void HTTP::popResponse()
 HTTP::Data HTTP::getResponse()
 {
     std::cout << "Se ha desempilado una respuesta (Bloquea Servidor)" << std::endl;
-    sem_wait(&this->response_n);
+    sem_wait(&this->semaphore_response);
     return this->response_q.front();
+}
+
+bool HTTP::isVirtPage()
+{
+    if (this->virtual_pages == nullptr)
+        return false;
+
+    return true;
+}
+
+VirtWebPage *HTTP::getVirtWebPage()
+{
+    return this->virtual_pages;
+}
+
+void HTTP::attachVirtWebPage(VirtWebPage *virtual_manager)
+{
+    this->virtual_pages = virtual_manager;
 }

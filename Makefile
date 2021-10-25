@@ -30,7 +30,7 @@ OTHR := -pthread -g
 CXXFLAGS := $(STD) $(WARN) $(OPTI) $(LINK) $(OTHR) -I$(INCLUDE) -L$(LIB_DIR) $(LIBS)
 
 # Objects
-OBJS = $(BLD_DIR)/Server.o $(BLD_DIR)/Client.o $(BLD_DIR)/HTTP.o
+OBJS = $(BLD_DIR)/Server.o $(BLD_DIR)/Client.o $(BLD_DIR)/HTTP.o $(BLD_DIR)/VirtWebPage.o
 DEPS = $(SRC_DIR)/Connection.hpp $(SRC_DIR)/Exception.hpp
 
 main: pre $(BIN_DIR)/$(PROJECT)
@@ -42,13 +42,16 @@ pre:
 $(BIN_DIR)/$(PROJECT): $(SRC_DIR)/$(PROJECT).cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(BLD_DIR)/Server.o: $(SRC_DIR)/Server.cpp $(SRC_DIR)/Server.hpp $(DEPS)
+$(BLD_DIR)/Server.o: $(SRC_DIR)/Server.cpp $(SRC_DIR)/Server.hpp $(DEPS) $(BLD_DIR)/HTTP.o
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
-$(BLD_DIR)/Client.o: $(SRC_DIR)/Client.cpp $(SRC_DIR)/Client.hpp $(DEPS)
+$(BLD_DIR)/Client.o: $(SRC_DIR)/Client.cpp $(SRC_DIR)/Client.hpp $(DEPS) $(BLD_DIR)/HTTP.o
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
-$(BLD_DIR)/HTTP.o: $(SRC_DIR)/HTTP.cpp $(SRC_DIR)/HTTP.hpp $(DEPS)
+$(BLD_DIR)/HTTP.o: $(SRC_DIR)/HTTP.cpp $(SRC_DIR)/HTTP.hpp $(DEPS) $(BLD_DIR)/VirtWebPage.o
+	$(CXX) -c $(CXXFLAGS) -o $@ $<
+
+$(BLD_DIR)/VirtWebPage.o:  $(SRC_DIR)/VirtWebPage.cpp $(SRC_DIR)/VirtWebPage.hpp
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
 # Phony's and Commands

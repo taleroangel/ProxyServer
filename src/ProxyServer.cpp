@@ -27,7 +27,11 @@
 
 /* -------------------------- Function prototypes -------------------------- */
 void mostrarUso();
-bool manejarArgumentos(int argc, char const *argv[], Connection::Port &port);
+std::string manejarArgumentos(
+    int argc,
+    char const *argv[],
+    Connection::Port &port,
+    bool &archivo);
 void interruptHandler(int opt);
 
 /* --------------------------- Global variables --------------------------- */
@@ -39,8 +43,10 @@ volatile bool _main_detach = false;
 int main(int argc, char const *argv[])
 {
     Connection::Port puerto;
-    if (manejarArgumentos(argc, argv, puerto))
-        puerto = DEFAULT_PORT;
+    bool archivovirtuales = false;
+
+    std::string nombre_archivo =
+        manejarArgumentos(argc, argv, puerto, archivovirtuales);
 
     std::cout
         << "Bienvenido al ServidorProxy" << std::endl;
@@ -50,6 +56,25 @@ int main(int argc, char const *argv[])
 
     // Crear la lista de peticiones HTTP
     HTTP *http_class = new HTTP();
+
+    // Crear páginas web virtuales
+    VirtWebPage *paginasVirtuales;
+    bool initialized = false;
+
+    if (archivovirtuales)
+    {
+        try
+        {
+            paginasVirtuales = new VirtWebPage(nombre_archivo);
+            http_class->attachVirtWebPage(paginasVirtuales);
+            initialized = true;
+        }
+        catch (FileException &e)
+        {
+            perror(e.what());
+        }
+    }
+
     // Crear los Servidores y Clientes
     Server *servidor;
     Client *cliente;
@@ -96,6 +121,9 @@ int main(int argc, char const *argv[])
     delete servidor;
     delete cliente;
 
+    if (initialized)
+        delete paginasVirtuales;
+
     // Salir
     return EXIT_SUCCESS;
 }
@@ -108,26 +136,49 @@ void mostrarUso()
     exit(1);
 }
 
-bool manejarArgumentos(
+std::string manejarArgumentos(
     int argc, char const *argv[],
-    Connection::Port &port)
+    Connection::Port &port, bool &archivo)
 {
-    if (argc == 1)
-        return true;
+    archivo = false;
+    std::string nombre_archivo;
 
-    // Sólo recibe un argumento
-    else if (argc != 2)
-        mostrarUso();
-
-    // Obtener el argumento
-    port = std::atoi(argv[1]);
-    if (port <= 0)
+    switch (argc)
     {
-        std::cerr << "El puerto no es válido!" << std::endl;
+    // Archivo
+    case 3:
+        nombre_archivo = argv[3];
+        archivo = true;
+
+    // Sólo PUERTO
+    case 2:
+
+        try
+        {
+            port = std::atoi(argv[1]);
+            if (port <= 0)
+            {
+                throw std::exception();
+            }
+        }
+
+        catch (std::exception &e)
+        {
+            mostrarUso();
+        }
+
+        break;
+
+    case 1: // Sin argumentos
+        port = DEFAULT_PORT;
+        break;
+
+    default:
         mostrarUso();
+        break;
     }
 
-    return false;
+    return nombre_archivo;
 }
 
 void interruptHandler(int opt)

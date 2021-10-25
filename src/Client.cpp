@@ -46,11 +46,11 @@ void Client::listener(HTTP *http_class)
     {
         // Obtener un request HTTP
         HTTP::Data request = http_class->getRequest();
-        std::cout << "Cliente: Recibiendo una petición del Servidor" << std::endl;
 
         //Crear el socket
         try
         {
+            // Crear un puerto con el Servidor (Puerto TCP 80 - HTTP)
             createSocket(request.destination, this->port);
         }
         catch (SocketException &e)
@@ -66,68 +66,54 @@ void Client::listener(HTTP *http_class)
         }
 
         //* 1. Send request to Destination
-
-        std::cout << std::endl
-                  << "Petición actual: \n"
-                  << request.buffer << std::endl;
-
         // Datos a transferir
         HTTP::Data response;
 
-        // 1. Identificar el tipo de petición
+        std::cout << "Cliente: Enviando datos al server" << std::endl;
+        write(this->network_socket,
+              request.buffer.c_str(),
+              request.buffer_size);
+        std::cout << "Cliente: Fin de la transacción" << std::endl;
 
-        switch (request.type)
+        //* Leer la respuesta (Redirigir el paquete)
+
+        uint32_t current_memory = 1;
+        char *http_buffer_response =
+            (char *)calloc(current_memory, sizeof(char));
+        // Pedir memoria para un array inicializado en 1
+
+        std::cout << "Cliente: Recibiendo datos del server" << std::endl;
+        size_t bytes_read = 0;
+        while (true)
         {
-        default: // Sólo redirigir los paquetes
+            // Leer 1 byte a la vez
+            ssize_t bytes =
+                read(this->network_socket,
+                     http_buffer_response + bytes_read, 1);
 
-            write(this->network_socket,
-                  request.buffer.c_str(),
-                  request.buffer_size);
+            if (bytes == 0)
+                break;
 
-            //* Leer la respuesta
+            bytes_read += bytes;
+            current_memory++;
 
-            uint32_t current_memory = 1;
-            char *http_buffer_response =
-                (char *)calloc(current_memory, sizeof(char));
-            // Pedir memoria para un array inicializado en 1
-
-            size_t bytes_read = 0;
-            while (true)
-            {
-                // Leer 1 byte a la vez
-                ssize_t bytes =
-                    read(this->network_socket,
-                         http_buffer_response + bytes_read, 1);
-
-                if (bytes == 0)
-                    break;
-
-                bytes_read += bytes;
-                current_memory++;
-
-                // Cada que pida un byte realojo la memoria con el nuevo tamaño
-                http_buffer_response = (char *)realloc(
-                    http_buffer_response, sizeof(char) * current_memory);
-            }
-
-            // Enviar la respuesta al servidor
-            response.buffer = http_buffer_response;
-            response.buffer_size = bytes_read;
-
-            // Proceso de realojo con alta fragmentación de memoria,
-            // de ser posible optimizar estos free y realloc
-            free(http_buffer_response);
-
-            break;
+            // Cada que pida un byte realojo la memoria con el nuevo tamaño
+            http_buffer_response = (char *)realloc(
+                http_buffer_response, sizeof(char) * current_memory);
         }
+
+        std::cout << "Cliente: Fin de la transacción" << std::endl;
+
+        // Enviar la respuesta al servidor
+        response.buffer = http_buffer_response;
+        response.buffer_size = bytes_read;
+
+        // Proceso de realojo con alta fragmentación de memoria,
+        // de ser posible optimizar estos free y realloc
+        free(http_buffer_response);
 
         response.ignore = false;
 
-        std::cout << std::endl
-                  << "Peek at response: \n"
-                  << response.buffer << std::endl;
-
-        std::cout << "Cliente: Enviando respuesta al servidor" << std::endl;
         http_class->pushResponse(response);
 
         // Desempilar la respuesta
