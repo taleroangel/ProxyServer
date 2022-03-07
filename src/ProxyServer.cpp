@@ -1,17 +1,24 @@
 /**
  * @file ProxyServer.cpp
- * @authors     Ángel David Talero Peñuela
- *              Samir Alejandro Sánchez
- *              Gerardo Hiladgo Carroll
+ * @author Angel D.Talero (angelgotalero@outlook.com)
  * @brief Servidor Proxy - Proyecto final Comunicaciones y Redes
  * @copyright Copyright (c) 2021. All rights reserved.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  * 
- * Pontificia Universidad Javeriana
- * Facultad de Ingeniería
- * Departamento de Ingeniería de Sistemas
- * Bogotá D.C - Colombia
- * 
- * Copyright © 2021
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 /* ------------------------------- Libraries ------------------------------- */
@@ -51,9 +58,9 @@ int main(int argc, char const *argv[])
         manejarArgumentos(argc, argv, puerto, archivovirtuales);
 
     std::cout
-        << "Bienvenido al ServidorProxy" << std::endl;
+        << "Welcome to ProxyServer by @taleroangel" << std::endl;
     std::cout
-        << "Se abrirá una conexión por el puerto: " << puerto << std::endl
+        << "Connection will be opened through port : " << puerto << std::endl
         << std::endl;
 
     // Crear la lista de peticiones HTTP
@@ -97,11 +104,11 @@ int main(int argc, char const *argv[])
 
     // Llamar al servidor desde un hilo
     std::cout
-        << "El servidor está listo para recibir peticiones..." << std::endl;
+        << "Server is ready for recieving petitions..." << std::endl;
     std::thread server_call(&Server::listener, servidor, http_class);
 
     std::cout
-        << "El servidor está listo para enviar peticiones..." << std::endl;
+        << "Server is ready for sending petitions..." << std::endl;
     std::thread client_call(&Client::listener, cliente, http_class);
 
     // Activar Interrupciones
@@ -116,7 +123,7 @@ int main(int argc, char const *argv[])
         // No hacer nada mientras estén los hilos
     }
 
-    std::cout << "\nCerrando el Servidor Proxy..." << std::endl;
+    std::cout << "\nClosing Proxy Server ..." << std::endl;
 
     // Eliminar el servidor
     delete http_class;
@@ -133,8 +140,8 @@ int main(int argc, char const *argv[])
 /* -------------------------- Function definition -------------------------- */
 void mostrarUso()
 {
-    std::cerr << "Uso: ./ProxyServer [puerto (opcional)]" << std::endl
-              << "El puerto por defecto es: " << DEFAULT_PORT << std::endl;
+    std::cerr << "Usage: ./ProxyServer [port (optional)]" << std::endl
+              << "Default port is: " << DEFAULT_PORT << std::endl;
     exit(1);
 }
 

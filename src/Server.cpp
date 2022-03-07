@@ -91,7 +91,7 @@ void Server::listener(HTTP *http_class)
     //* Ahora el Server puede recibir conexiones
     while (http_class->activeListen)
     {
-        std::cout << "Servidor: en estado de escucha" << std::endl;
+        std::cout << "Server: in listening state..." << std::endl;
         FileDescriptor client_socket; // Socket del cliente
 
         try
@@ -113,10 +113,10 @@ void Server::listener(HTTP *http_class)
         char request_http[HTTP::RequestSize];
         memset(request_http, 0, sizeof(request_http));
 
-        std::cout << "\nServidor: Recibiendo data del navegador" << std::endl;
+        std::cout << "\nServer: Recieving data from browser" << std::endl;
         ssize_t bytes_read =
             recv(client_socket, &request_http, HTTP::RequestSize, 0);
-        std::cout << "Servidor: Fin de la transacción" << std::endl;
+        std::cout << "Server: End of transaction (EOT)" << std::endl;
 
         // Colocar bit de finalización
         request_http[bytes_read] = '\0';
@@ -145,7 +145,7 @@ void Server::listener(HTTP *http_class)
                 pagina = http_class->getVirtWebPage()->getVirtualPage(url_host);
 
                 // Copiar los contenidos de la página en la string de URL
-                std::cout << "\nPáginas web virtuales: "
+                std::cout << "\nVirtual web pages (Virtual DNS): "
                           << url_host << " -> " << pagina;
                 strcpy(url_host, pagina.c_str());
             }
@@ -167,8 +167,8 @@ void Server::listener(HTTP *http_class)
             }
             catch (AddressException &e)
             {
-                std::cerr << "\nDirección no encontrada: " << url_host << std::endl;
-                std::cout << "Saltando petición" << std::endl;
+                std::cerr << "\nAddress not found: " << url_host << std::endl;
+                std::cout << "Skipping petition" << std::endl;
                 close(client_socket);
                 continue;
             }
@@ -178,7 +178,7 @@ void Server::listener(HTTP *http_class)
 
         else
         {
-            std::cout << "\nServicio DNS: usando dirección previa\n"
+            std::cout << "\nDNS Service: using previous address\n"
                       << std::endl;
         }
 
@@ -194,13 +194,13 @@ void Server::listener(HTTP *http_class)
         //* 3. Recibir respuesta del hilo Cliente
         HTTP::Data response = http_class->getResponse();
 
-        std::cout << "\nServidor: Enviando datos al navegador" << std::endl;
+        std::cout << "\nServer: Sending data to browser" << std::endl;
         if (response.ignore != true)
         {
             //* 4. Reenviar respuesta al origen (Buscador)
             send(client_socket, response.buffer.c_str(), response.buffer_size, 0);
         }
-        std::cout << "Servidor: Fin de la transacción\n"
+        std::cout << "Server: End of transaction (EOT)\n"
                   << std::endl;
 
         http_class->popResponse();

@@ -11,7 +11,6 @@ STD	= -std=c++11
 SRC_DIR := ./src
 BIN_DIR := ./bin
 BLD_DIR := ./build
-DOC_DIR := ./doc/doxy
 
 # Libraries
 LIBS :=
@@ -21,8 +20,8 @@ LIB_DIR := /usr/lib
 INCLUDE := $(SRC_DIR)
 
 # Compiler flags
-WARN := -Wall
-OPTI := -O0
+WARN := -Wno-unused-result
+OPTI := -O3
 LINK :=
 OTHR := -pthread -g
 
@@ -58,8 +57,4 @@ $(BLD_DIR)/VirtWebPage.o:  $(SRC_DIR)/VirtWebPage.cpp $(SRC_DIR)/VirtWebPage.hpp
 
 .PHONY: clean
 clean:
-	@rm -rf $(BLD_DIR) $(BIN_DIR) $(DOC_DIR)
-
-.PHONY: docs
-docs:
-	@mkdir $(DOC_DIR)
+	@rm -rf $(BLD_DIR) $(BIN_DIR)

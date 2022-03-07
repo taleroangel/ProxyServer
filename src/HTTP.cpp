@@ -56,7 +56,7 @@ std::string HTTP::resolveDNS(std::string url, uint8_t attempt)
 
     // Retornar direccion ipv4
     std::cout << std::endl
-              << "Servicio DNS: " << url << " -> " << ipv4 << std::endl
+              << "DNS Service: " << url << " -> " << ipv4 << std::endl
               << std::endl;
 
     return ipv4;
@@ -83,7 +83,7 @@ void HTTP::get_hostname(
 
 void HTTP::pushRequest(Data request)
 {
-    std::cout << "Se ha empilado una petición (Desbloquea Cliente)" << std::endl;
+    std::cout << "Petition was stacked (Unlocks Client)" << std::endl;
     this->request_q.push(request);
     sem_post(&this->sempahore_request);
 }
@@ -95,14 +95,14 @@ void HTTP::popRequest()
 
 HTTP::Data HTTP::getRequest()
 {
-    std::cout << "Se ha desempilado una petición (Bloquea Cliente)" << std::endl;
+    std::cout << "Petition unstacked (Locks Client)" << std::endl;
     sem_wait(&this->sempahore_request);
     return this->request_q.front();
 }
 
 void HTTP::pushResponse(HTTP::Data response)
 {
-    std::cout << "Se ha empilado una respuesta (Desbloquea Servidor)" << std::endl;
+    std::cout << "Response was stacked (Unlocks Server)" << std::endl;
     this->response_q.push(response);
     sem_post(&this->semaphore_response);
 }
@@ -114,7 +114,7 @@ void HTTP::popResponse()
 
 HTTP::Data HTTP::getResponse()
 {
-    std::cout << "Se ha desempilado una respuesta (Bloquea Servidor)" << std::endl;
+    std::cout << "Response unstacked (Locks Server)" << std::endl;
     sem_wait(&this->semaphore_response);
     return this->response_q.front();
 }
